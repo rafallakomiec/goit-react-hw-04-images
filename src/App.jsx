@@ -5,25 +5,20 @@ import ImageGallery from './components/ImageGallery/ImageGallery';
 import Button from './components/Button/Button';
 import { TailSpin } from 'react-loader-spinner';
 import Modal from './components/Modal/Modal';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 
 const PER_PAGE = 12;
 
 const App = () => {
   const [pageNo, setPageNo] = useState(1);
-  const [searchPhrase, setSearchPhrase] = useState('');
+  const [searchPhrase, setSearchPhrase] = useState(null);
   const [images, setImages] = useState([]);
   const [totalHits, setTotalHits] = useState(0);
   const [isSpinnerOn, setIsSpinnerOn] = useState(false);
   const [isModalOn, setIsModalOn] = useState(false);
   const [currentModal, setCurrentModal] = useState({});
 
-  const prevSearchPhraseRef = useRef();
-  prevSearchPhraseRef.current = searchPhrase;
-  const prevPageNoRef = useRef();
-  prevPageNoRef.current = pageNo;
-  
   const keyboardHandler = event => {
     if (event.key === 'Escape') {
       setIsModalOn(false);
@@ -35,6 +30,7 @@ const App = () => {
   const onSubmitHandler = event => {
     event.preventDefault();
     const searchPhrase = event.target.elements.searchInput.value;
+    setImages([]);
     setPageNo(1);
     setSearchPhrase(searchPhrase);
     setIsSpinnerOn(true);
@@ -75,34 +71,28 @@ const App = () => {
   useEffect(() => { 
     window.addEventListener('keyup', keyboardHandler);
 
-    return () => { 
+    return (() => {
       window.removeEventListener('keyup', keyboardHandler);
-    };
+    });
   }, []);
 
-  useEffect(async () => {
-    if (prevSearchPhraseRef.current !== searchPhrase) { 
-      const responseData = await fetchHandler(searchPhrase, pageNo, PER_PAGE);
-
-      setImages(responseData.data.hits);
-      setTotalHits(responseData.data.total);
-      setIsSpinnerOn(false);
-      return true;
+  useEffect(() => {
+    if (searchPhrase !== null) {
+      (async () => {
+        const responseData = await fetchHandler(searchPhrase, pageNo, PER_PAGE);
+        setImages([...images, ...responseData.data.hits]);
+        setTotalHits(responseData.data.total);
+        setIsSpinnerOn(false);
+      })();
     }
-    
-    if (prevSearchPhraseRef.current === searchPhrase && prevPageNoRef !== pageNo) {
-      const responseData = await fetchHandler(searchPhrase, pageNo, PER_PAGE);
-      setImages([...images, ...responseData.data.hits]);
-      setIsSpinnerOn(false);
-    }
-  }, [prevSearchPhraseRef.current, prevPageNoRef.current]);
+  }, [searchPhrase, pageNo]);
 
   return (
     <>
       <div className={css.app}>
         <Searchbar onSubmit={onSubmitHandler} />
         {images.length > 0 && <ImageGallery images={images} openModalHandler={openModalHandler} />}
-        {totalHits - (PER_PAGE * this.state.pageNo) > 0 && (
+        {totalHits - (PER_PAGE * pageNo) > 0 && (
           <Button onClick={loadMoreHandler} />
         )}
       </div>
