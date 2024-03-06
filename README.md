@@ -17,7 +17,7 @@ React web application done as an course assignment.
 * HTML
 
 ## Usage
-You can try app demo hosted on [GitHub Pages](https://rafallakomiec.github.io/goit-react-hw-03-image-finder/)
+You can try app demo hosted on [GitHub Pages](https://rafallakomiec.github.io/goit-react-hw-04-images/)
 Alternatively clone the repository, install [Node.js](https://nodejs.org/en/download/current) and run following commands in your terminal:
 
 ```

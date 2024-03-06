@@ -1,9 +1,9 @@
 {
-  "name": "goit-react-hw-03-image-finder",
+  "name": "goit-react-hw-04-images",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://rafallakomiec.github.io/goit-react-hw-03-image-finder/",
+  "homepage": "https://rafallakomiec.github.io/goit-react-hw-04-images/",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
