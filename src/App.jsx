@@ -1,4 +1,3 @@
-import { Component } from 'react';
 import css from './App.module.css';
 import Searchbar from './components/Searchbar/Searchbar';
 import fetchHandler from './utils/fetchHandlers/fetchHandler.js';
@@ -6,125 +5,129 @@ import ImageGallery from './components/ImageGallery/ImageGallery';
 import Button from './components/Button/Button';
 import { TailSpin } from 'react-loader-spinner';
 import Modal from './components/Modal/Modal';
+import { useEffect, useRef, useState } from 'react';
 
 
 const PER_PAGE = 12;
 
-class App extends Component {
-  state = {
-    pageNo: 1,
-    searchPhrase: '',
-    images: [],
-    totalHits: 0,
-    isSpinnerOn: false,
-    isModalOn: false,
-    currentModal: {},
-  };
+const App = () => {
+  const [pageNo, setPageNo] = useState(1);
+  const [searchPhrase, setSearchPhrase] = useState('');
+  const [images, setImages] = useState([]);
+  const [totalHits, setTotalHits] = useState(0);
+  const [isSpinnerOn, setIsSpinnerOn] = useState(false);
+  const [isModalOn, setIsModalOn] = useState(false);
+  const [currentModal, setCurrentModal] = useState({});
 
-  keyboardHandler = event => {
+  const prevSearchPhraseRef = useRef();
+  prevSearchPhraseRef.current = searchPhrase;
+  const prevPageNoRef = useRef();
+  prevPageNoRef.current = pageNo;
+  
+  const keyboardHandler = event => {
     if (event.key === 'Escape') {
-      this.setState({ isModalOn: false, isSpinnerOn: false, currentModal: {} });
+      setIsModalOn(false);
+      setIsSpinnerOn(false);
+      setCurrentModal({});
     }
   };
 
-  onSubmitHandler = event => {
+  const onSubmitHandler = event => {
     event.preventDefault();
     const searchPhrase = event.target.elements.searchInput.value;
-    this.setState({ pageNo: 1, searchPhrase: searchPhrase, isSpinnerOn: true });
+    setPageNo(1);
+    setSearchPhrase(searchPhrase);
+    setIsSpinnerOn(true);
   };
 
-  openModalHandler = (imageKey) => {
-    const image = this.state.images.find(item => item.id == imageKey);
+  const openModalHandler = (imageKey) => {
+    const image = images.find(item => item.id == imageKey);
 
-    this.setState({
-      isSpinnerOn: true,
-      isModalOn: true,
-      currentModal: {
-        largeImageURL: image.largeImageURL,
-        tags: image.tags,
-      },
+    setIsSpinnerOn(true);
+    setIsModalOn(true);
+    setCurrentModal({
+      largeImageURL: image.largeImageURL,
+      tags: image.tags
     });
   };
 
-  modalImageLoadedHandler = () => {
-    this.setState({ isSpinnerOn: false });
+  const modalImageLoadedHandler = () => {
+    setIsSpinnerOn(false);
   };
 
-  modalCloseHandler = event => {
+  const modalCloseHandler = event => {
     if (
       event.target.tagName === 'DIV' ||
       event.target.tagName === 'IMG' ||
       event.key === 'Escape'
     ) {
-      this.setState({ isModalOn: false, isSpinnerOn: false, currentModal: {} });
+      setIsModalOn(false);
+      setIsSpinnerOn(false);
+      setCurrentModal({});
     }
   };
 
-  loadMoreHandler = () => {
-    this.setState({ pageNo: this.state.pageNo + 1, isSpinnerOn: true }, );
+  const loadMoreHandler = () => {
+    setPageNo(pageNo + 1);
+    setIsSpinnerOn(true);
   };
 
-  render() {
-    return (
-      <>
-        <div className={css.app}>
-          <Searchbar onSubmit={this.onSubmitHandler} />
-          {this.state.images.length > 0 && <ImageGallery images={this.state.images} openModalHandler={this.openModalHandler} />}
-          {this.state.totalHits - PER_PAGE * this.state.pageNo > 0 && (
-            <Button onClick={this.loadMoreHandler} />
-          )}
-        </div>
-        {this.state.isModalOn && (
-          <Modal
-            image={this.state.currentModal.largeImageURL}
-            description={this.state.currentModal.tags}
-            handleImageLoaded={this.modalImageLoadedHandler}
-            handleModalClose={this.modalCloseHandler}
-            isModalOn={this.state.isModalOn}
-            isSpinnerOn={this.state.isSpinnerOn}
-          />
-        )}
-        <TailSpin
-          height="80"
-          width="80"
-          color="#4fa94d"
-          ariaLabel="tail-spin-loading"
-          radius="1"
-          wrapperStyle={{}}
-          wrapperClass={css.spinner}
-          visible={this.state.isSpinnerOn}
-        />
-      </>
-    );
-  }
+  useEffect(() => { 
+    window.addEventListener('keyup', keyboardHandler);
 
-  componentDidMount() {
-    window.addEventListener('keyup', this.keyboardHandler);
-  }
+    return () => { 
+      window.removeEventListener('keyup', keyboardHandler);
+    };
+  }, []);
 
-  componentWillUnmount() {
-    window.removeEventListener('keyup', this.keyboardHandler);
-  }
+  useEffect(async () => {
+    if (prevSearchPhraseRef.current !== searchPhrase) { 
+      const responseData = await fetchHandler(searchPhrase, pageNo, PER_PAGE);
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (prevState.searchPhrase !== this.state.searchPhrase) { 
-      const responseData = await fetchHandler(this.state.searchPhrase, this.state.pageNo, PER_PAGE);
-      this.setState({
-        images: responseData.data.hits,
-        totalHits: responseData.data.total,
-        isSpinnerOn: false,
-      });
+      setImages(responseData.data.hits);
+      setTotalHits(responseData.data.total);
+      setIsSpinnerOn(false);
       return true;
     }
     
-    if (prevState.searchPhrase === this.state.searchPhrase && prevState.pageNo !== this.state.pageNo) {
-      const responseData = await fetchHandler(this.state.searchPhrase, this.state.pageNo, PER_PAGE);
-      this.setState({
-        images: [...this.state.images, ...responseData.data.hits],
-        isSpinnerOn: false,
-      });
+    if (prevSearchPhraseRef.current === searchPhrase && prevPageNoRef !== pageNo) {
+      const responseData = await fetchHandler(searchPhrase, pageNo, PER_PAGE);
+      setImages([...images, ...responseData.data.hits]);
+      setIsSpinnerOn(false);
     }
-  }
+  }, [prevSearchPhraseRef.current, prevPageNoRef.current]);
+
+  return (
+    <>
+      <div className={css.app}>
+        <Searchbar onSubmit={onSubmitHandler} />
+        {images.length > 0 && <ImageGallery images={images} openModalHandler={openModalHandler} />}
+        {totalHits - (PER_PAGE * this.state.pageNo) > 0 && (
+          <Button onClick={loadMoreHandler} />
+        )}
+      </div>
+      {isModalOn && (
+        <Modal
+          image={currentModal.largeImageURL}
+          description={currentModal.tags}
+          handleImageLoaded={modalImageLoadedHandler}
+          handleModalClose={modalCloseHandler}
+          isModalOn={isModalOn}
+          isSpinnerOn={isSpinnerOn}
+        />
+      )}
+      <TailSpin
+        height="80"
+        width="80"
+        color="#4fa94d"
+        ariaLabel="tail-spin-loading"
+        radius="1"
+        wrapperStyle={{}}
+        wrapperClass={css.spinner}
+        visible={isSpinnerOn}
+      />
+    </>
+  );
 }
 
 export default App;
