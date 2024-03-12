@@ -68,24 +68,15 @@ const App = () => {
     setIsSpinnerOn(true);
   };
 
-  useEffect(() => { 
-    window.addEventListener('keyup', keyboardHandler);
-
-    return (() => {
-      window.removeEventListener('keyup', keyboardHandler);
-    });
-  }, []);
-
   useEffect(() => {
-    if (searchPhrase !== null) {
+    if (!searchPhrase) return;
       (async () => {
         const responseData = await fetchHandler(searchPhrase, pageNo, PER_PAGE);
         setImages([...images, ...responseData.data.hits]);
         setTotalHits(responseData.data.total);
         setIsSpinnerOn(false);
       })();
-    }
-  }, [searchPhrase, pageNo]);
+  }, [searchPhrase, pageNo, images]);
 
   return (
     <>
@@ -102,6 +93,7 @@ const App = () => {
           description={currentModal.tags}
           handleImageLoaded={modalImageLoadedHandler}
           handleModalClose={modalCloseHandler}
+          handleKeyboard={keyboardHandler}
           isModalOn={isModalOn}
           isSpinnerOn={isSpinnerOn}
         />
